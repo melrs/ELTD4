@@ -52,6 +52,8 @@ def barChart(feature):
 # sns.boxplot(x='Pclass', data = train_data)
 # sns.stripplot(x='Pclass', data = train_data, color = 'black')
 
+ ######### PRÉ-PROCESSAMENTO #########
+
 # Pegando apenas o título no nome
 data = [train_data, test_data]
 for dataset in data :
@@ -66,7 +68,7 @@ titleMapping = {"Mr": 0, "Miss": 1,"Mrs": 2, "Master": 3, "Col" : 3, "Rev": 3, "
                  "Mlle":3, "Countess" :3, "Capt":3, "Jonkheer":3, "Don":3, "Mme":3, "Lady":3, "Sir":3, "Major" :3}
 for dataset in data :
   dataset['Title'] = dataset['Title'].map(titleMapping)
-  
+    
 # Indexando com ID e dropando a feature Name
 train_data.set_index("PassengerId", inplace=True)
 train_data.drop('Name', axis =1, inplace= True)
@@ -101,19 +103,51 @@ test_data['Embarked_encoded'] = encoder.fit_transform(test_data['Embarked'])
 test_data.drop('Embarked', axis=1, inplace=True)
 
 # Removendo linhas que tenham Fare ou Embarked features vazias (neste ponto, não deve ter nenhum elemento nulo na tabela) 
-train_data = train_data.dropna(subset=["Embarked_encoded"])
-test_data = train_data.dropna(subset=["Fare"])
-test_data = train_data.dropna(subset=["Embarked_encoded"])
+#train_data = train_data.dropna(subset=["Embarked_encoded"])
+#test_data = test_data.dropna(subset=["Fare"])
+#test_data = test_data.dropna(subset=["Embarked_encoded"])
 
 # Dropando Embarked porque me parece inútil
 train_data.drop('Embarked_encoded', axis =1, inplace= True)
 test_data.drop('Embarked_encoded', axis =1, inplace= True)
 
+# Combinação de recursos SibSp e Parch, sem nenhuma mudança significativa no resultado
+train_data['FamilySize'] = train_data['SibSp'] + train_data['Parch']
+test_data['FamilySize'] = test_data['SibSp'] + test_data['Parch']
+
+# Dropando as colunas SibSp e Parch
+train_data.drop(['SibSp', 'Parch'], axis=1, inplace=True)
+test_data.drop(['SibSp', 'Parch'], axis=1, inplace=True)
+
+# Função para mapear idades para categorias de faixa etária
+def categorize_age(age):
+    if age < 18:
+        return 0
+    elif 18 <= age < 65:
+        return 1
+    else:
+        return 2
+
+    
+# Melhorou resultado: ADABOOST, KNN(significativamente), ÁRVORE DE DECISÃO
+# Piorou resultado: SVM, GRADIENT BOOSTING, RANDOM FOREST
+#train_data['AgeGroup'] = train_data['Age'].apply(categorize_age)
+#test_data['AgeGroup'] = test_data['Age'].apply(categorize_age)
+#train_data.drop('Age', axis=1, inplace=True)
+#test_data.drop('Age', axis=1, inplace=True)
+
+
+# Preenchendo os valores vazios em fare com a média da classe
+train_data["Fare"].fillna(train_data.groupby('Pclass')["Fare"].transform("median"), inplace = True)
+test_data["Fare"].fillna(test_data.groupby('Pclass')["Fare"].transform("median"), inplace = True)
+
+
+ ######### FIM PRÉ-PROCESSAMENTO #########
+
 # Correlação de variáveis
 train_corr = train_data.corr()
 plt.figure(figsize= (6,6))
 sns.heatmap(train_corr,square=True, fmt='.2f', annot=True)
-
 
 # Separando os dataset de features e classes
 X = train_data.drop(columns = ['Survived'])
@@ -243,6 +277,12 @@ y_pred = svm.predict(X_test)
 svm_rmae = mean_absolute_error(y_test, y_pred)
 print("Error rate: %.2f\n" % svm_rmae)
 print("-------------------------------------------")
+
+
+prediction = gb.predict(test_data)
+submission = pd.DataFrame({'PassengerId': test_data.index, 'Survived': prediction})
+submission.to_csv('submission.csv', index=False)
+
 
 
 
