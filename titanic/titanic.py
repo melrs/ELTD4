@@ -282,36 +282,3 @@ print("-------------------------------------------")
 prediction = gb.predict(test_data)
 submission = pd.DataFrame({'PassengerId': test_data.index, 'Survived': prediction})
 submission.to_csv('submission.csv', index=False)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  
-  
